@@ -72,7 +72,6 @@ public class ChatHandlerActivity extends Activity implements OnClickListener {
 			mIBluetoothSerivice = (IBluetoothSerivice) service;
 			
 			mIBluetoothSerivice.setHandler(mMessageHandler);
-			Logs.v("onServiceConnected >>>>>");
 			
 			BlueClientHandlerService.actionBlueClientHandlerService(mContext, mServerOrClientType, mBluetoothAddress);
 		}

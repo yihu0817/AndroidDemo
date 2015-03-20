@@ -9,7 +9,7 @@
         android:id="@+id/titletxt"
         android:layout_width="fill_parent"
         android:layout_height="40dp"
-        android:background="@android:color/holo_blue_dark"
+        android:background="#ff0099cc"
         android:gravity="center"
         android:text="聊天通讯"
         android:textColor="@android:color/white"

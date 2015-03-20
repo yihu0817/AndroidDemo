@@ -37,13 +37,13 @@ public class BlueClientHandlerService extends IntentService {
 	private Context mContext;
 
 	public static void actionBlueClientHandlerService(Context context,int mServerOrClientType,String mBluetoothAddress){
-		Intent intent = new Intent(context, BlueClientService.class);
+		Intent intent = new Intent(context, BlueClientHandlerService.class);
 		intent.putExtra(Constances.SERVER_CLIENT_TYPE, mServerOrClientType);
 		intent.putExtra(Constances.BLUETOOTH_ADDRESS, mBluetoothAddress);
 		context.startService(intent);
 	}
 	public static void actionBlueClientHandlerService(Context context,int mServerOrClientType){
-		Intent intent = new Intent(context, BlueClientService.class);
+		Intent intent = new Intent(context, BlueClientHandlerService.class);
 		intent.putExtra(Constances.SERVER_CLIENT_TYPE, mServerOrClientType);
 		context.startService(intent);
 	}

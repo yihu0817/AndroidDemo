@@ -107,8 +107,8 @@ public class DeviceActivity extends Activity implements OnItemClickListener,OnCl
 			}
 			break;
 		case R.id.start_service:
-//			ChatActivity.actionServerChatActivity(mContext);
-			ChatHandlerActivity.actionServerChatActivity(mContext);
+			ChatActivity.actionServerChatActivity(mContext);
+//			ChatHandlerActivity.actionServerChatActivity(mContext);
 			break;
 		}
 	}
@@ -127,8 +127,8 @@ public class DeviceActivity extends Activity implements OnItemClickListener,OnCl
 						mBluetoothAdapter.cancelDiscovery();
 						mSeachDeviceBtn.setText(getString(R.string.device_re_connect_btn));
 
-//						ChatActivity.actionClientChatActivity(mContext,address);
-						ChatHandlerActivity.actionClientChatActivity(mContext, address);
+						ChatActivity.actionClientChatActivity(mContext,address);
+//						ChatHandlerActivity.actionClientChatActivity(mContext, address);
 					}
 				})
 				.setNegativeButton(getString(R.string.device_cancel_btn), new DialogInterface.OnClickListener() {

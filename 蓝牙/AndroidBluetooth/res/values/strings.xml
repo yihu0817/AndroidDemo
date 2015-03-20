@@ -12,7 +12,7 @@
     <string name="chat_disconnection_message">"已断开连接！"</string>
     <string name="chat_no_connection_message">"没有连接"</string>
     <string name="chat_connection_isopen_message">"连接已经打开，可以通信。如果要再建立连接，请先断开！"</string>
-    <string name="chat_connectioning_message">"请稍候，正在连接服务器: %$s"</string>
+    <string name="chat_connectioning_message">"请稍候，正在连接服务器: %s"</string>
     <string name="chat_connectioned_sendok_message">"已经连接上服务端！可以发送信息。"</string>
     <string name="chat_connection_error_message">"连接服务端异常！断开连接重新试一试。"</string>
     <string name="chat_please_client_connectioning_message">"请稍候，正在等待客户端的连接..."</string>
