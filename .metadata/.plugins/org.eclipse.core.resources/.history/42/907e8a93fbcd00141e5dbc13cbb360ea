@@ -1,0 +1,71 @@
+package com.scxh.bluetooth;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import android.annotation.SuppressLint;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.view.PagerTabStrip;
+import android.support.v4.view.ViewPager;
+import android.view.Window;
+
+@SuppressLint("InlinedApi") 
+public class BlueToothActivity extends FragmentActivity {
+	private ViewPager mViewPager;
+	private PagerTabStrip mPagerTabStrip;
+	@Override
+	protected void onCreate(Bundle arg0) {
+		super.onCreate(arg0);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		setContentView(R.layout.bluetooth_main_layout);
+		
+		mViewPager = (ViewPager) findViewById(R.id.viewpagerContainer);
+		mPagerTabStrip = (PagerTabStrip) findViewById(R.id.pagertab);
+
+		mPagerTabStrip.setTabIndicatorColor(getResources().getColor(android.R.color.holo_red_light));
+		mPagerTabStrip.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
+
+		List<Fragment> mFragmentLists = new ArrayList<Fragment>();
+		mFragmentLists.add(new ChatFragment());
+		mFragmentLists.add(new DeviceFragment());
+
+		List<String> mTitleLists = new ArrayList<String>();
+		mTitleLists.add("搜索设备");
+		mTitleLists.add("聊天通讯");
+
+		MyPagerAdapter pageAdapter = new MyPagerAdapter(getSupportFragmentManager(), mFragmentLists,mTitleLists);
+		mViewPager.setAdapter(pageAdapter);
+	}
+	
+	class MyPagerAdapter extends FragmentPagerAdapter {
+		private List<Fragment> fragmentList;
+		private List<String> mTititleList;
+
+		public MyPagerAdapter(FragmentManager fm, List<Fragment> fragmentLists,List<String> titleLists) {
+			super(fm);
+			fragmentList = fragmentLists;
+			mTititleList = titleLists;
+		}
+
+		@Override
+		public Fragment getItem(int position) {
+			return (fragmentList == null || fragmentList.size() == 0) ? null: fragmentList.get(position);
+		}
+
+		@Override
+		public CharSequence getPageTitle(int position) {
+			return (mTititleList == null || mTititleList.size() == 0) ? null: mTititleList.get(position);
+		}
+
+		@Override
+		public int getCount() {
+			return fragmentList == null ? 0 : fragmentList.size();
+
+		}
+
+	}
+}

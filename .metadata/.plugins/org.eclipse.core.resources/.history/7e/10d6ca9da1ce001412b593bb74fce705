@@ -1,0 +1,10 @@
+package com.warmtel.bluetooth.util;
+
+public class Constances {
+	public static final int CLIENT_TYPE = 0;
+	public static final int SERVER_TYPE = 1;
+	public static final String SERVER_Client_Type = "ServerOrClientType";
+	public static final int SERVER_TYPE = 1;
+	public static boolean isOpen = false;
+	
+}

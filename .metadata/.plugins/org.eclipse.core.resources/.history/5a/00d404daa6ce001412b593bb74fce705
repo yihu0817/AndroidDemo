@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+   android:id = "@+id/container"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+    <TextView android:id="@+id/titletxt"
+        	 android:layout_width="fill_parent"
+		  android:layout_height="40dp"
+		  android:gravity="center"
+		  android:background="@android:color/holo_blue_dark"
+		  android:text="聊天通讯"/>"
+    <RelativeLayout
+	  android:layout_width="fill_parent"
+	  android:layout_height="wrap_content"
+	  android:id= "@+id/edit_bottombar"
+	  android:layout_alignParentBottom = "true">
+
+        <Button android:id="@+id/btn_disconnect"
+			android:layout_width="65dp" 
+			android:layout_height="wrap_content"  
+			android:layout_alignParentLeft ="true"
+			android:text="断开"/> 
+			
+		<Button android:id="@+id/send_message_btn"
+			android:layout_width="65dp" 
+			android:layout_height="wrap_content"  
+			android:layout_alignParentRight ="true"
+			android:text="发送"/> 	
+		<EditText
+	         android:layout_width="fill_parent"
+	      	 android:layout_height = "wrap_content"
+	      	 android:layout_toLeftOf="@id/send_message_btn"
+	      	 android:layout_toRightOf="@+id/btn_disconnect"  	      	 
+	      	 android:hint = "说点什么呢?"
+	      	 android:textSize="15dip"
+	      	 android:id = "@+id/send_message_edit"/>
+	</RelativeLayout>  
+
+	 <ListView  
+	    android:id="@+id/list"
+	    android:layout_width="fill_parent"  
+	    android:layout_height="fill_parent" 
+	    android:scrollingCache="false" 
+	    android:divider="#ffc6c6c6" 
+	    android:layout_weight="1.0" 
+	    android:layout_above = "@id/edit_bottombar"
+	    android:layout_below="@id/titletxt"
+	    />
+</RelativeLayout>

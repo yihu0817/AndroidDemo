@@ -1,0 +1,122 @@
+package com.scxh.bluetoothservice;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.UUID;
+
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
+import android.os.Bundle;
+import android.os.Message;
+import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+
+public class MainActivity extends Activity {
+	private Button mStartBlueServerBtn;
+	/* 一些常量，代表服务器的名称 */
+	public static final String PROTOCOL_SCHEME_L2CAP = "btl2cap";
+	public static final String PROTOCOL_SCHEME_RFCOMM = "btspp";
+	public static final String PROTOCOL_SCHEME_BT_OBEX = "btgoep";
+	public static final String PROTOCOL_SCHEME_TCP_OBEX = "tcpobex";
+	private BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+	private BluetoothServerSocket mserverSocket = null;
+	private BluetoothSocket socket = null;
+	private readThread mreadThread;
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		
+		mStartBlueServerBtn = (Button) findViewById(R.id.startBlueServerBtn);
+		mStartBlueServerBtn.setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				new ServerThread().start();
+			}
+		});
+	}
+
+	// 开启服务器
+	private class ServerThread extends Thread {
+		public void run() {
+
+			try {
+				/*
+				 * 创建一个蓝牙服务器 参数分别：服务器名称、UUID
+				 */
+				mserverSocket = mBluetoothAdapter
+						.listenUsingRfcommWithServiceRecord(
+								PROTOCOL_SCHEME_RFCOMM,
+								UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+
+				Log.d("server", "wait cilent connect...");
+
+				Message msg = new Message();
+				msg.obj = "请稍候，正在等待客户端的连接...";
+				msg.what = 0;
+				LinkDetectedHandler.sendMessage(msg);
+
+				/* 接受客户端的连接请求 */
+				socket = mserverSocket.accept();
+				Log.d("server", "accept success !");
+
+				Message msg2 = new Message();
+				String info = "客户端已经连接上！可以发送信息。";
+				msg2.obj = info;
+				msg.what = 0;
+				LinkDetectedHandler.sendMessage(msg2);
+				// 启动接受数据
+				mreadThread = new readThread();
+				mreadThread.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	};
+	
+	//读取数据
+    private class readThread extends Thread { 
+        public void run() {
+        	
+            byte[] buffer = new byte[1024];
+            int bytes;
+            InputStream mmInStream = null;
+            
+			try {
+				mmInStream = socket.getInputStream();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}	
+            while (true) {
+                try {
+                    // Read from the InputStream
+                    if( (bytes = mmInStream.read(buffer)) > 0 )
+                    {
+	                    byte[] buf_data = new byte[bytes];
+				    	for(int i=0; i<bytes; i++)
+				    	{
+				    		buf_data[i] = buffer[i];
+				    	}
+						String s = new String(buf_data);
+						Message msg = new Message();
+						msg.obj = s;
+						msg.what = 1;
+						LinkDetectedHandler.sendMessage(msg);
+                    }
+                } catch (IOException e) {
+                	try {
+						mmInStream.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+                    break;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,7 @@
+package com.scxh.bluetooth;
+
+public class Constances {
+	enum ServerOrCilent {
+		NONE, SERVICE, CILENT
+	};
+}

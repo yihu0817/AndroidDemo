@@ -1,0 +1,349 @@
+package com.scxh.bluetooth;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Set;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.Toast;
+
+public class ClientMainActivity extends Activity {
+	private Button mSearchBlueDeiveBtn;
+	private Button seachButton, serviceButton;
+	private ListView mListView;
+	private ArrayList<SiriListItem> mDataList = new ArrayList<SiriListItem>();
+	private ChatListAdapter mAdapter;
+	private Context mContext;
+	private BluetoothSocket socket = null;
+	private final String lockName = "BOLUTEK";
+	private clientThread clientConnectThread = null;
+	private readThread mreadThread = null;
+	/* 取得默认的蓝牙适配器 */
+	private BluetoothAdapter mBtAdapter = BluetoothAdapter.getDefaultAdapter();
+	private BluetoothDevice device = null;
+	private Button mShowMessageTxt;
+
+	enum ServerOrCilent {
+		NONE, SERVICE, CILENT
+	};
+
+	private Handler LinkDetectedHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			mShowMessageTxt.setText((String) msg.obj);
+
+		}
+
+	};
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.devices);
+		mContext = this;
+
+		mListView = (ListView) findViewById(R.id.list);
+		mShowMessageTxt = (Button) findViewById(R.id.show_message_txt);
+		mAdapter = new ChatListAdapter(this, mDataList);
+		mListView.setAdapter(mAdapter);
+		mListView.setFastScrollEnabled(true);
+		mListView.setOnItemClickListener(mDeviceClickListener);
+
+		search();
+		init();
+
+	}
+
+	private void search() {
+		BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();// 获得系统默认的蓝牙适配器
+		if (!adapter.isEnabled()) { // 检查手机的蓝牙是否打开
+			adapter.enable();
+		}
+		Intent enable = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+		enable.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 3600); // 3600为蓝牙设备可见时间
+		startActivity(enable);
+
+	}
+
+	private void init() {
+
+		IntentFilter discoveryFilter = new IntentFilter(
+				BluetoothDevice.ACTION_FOUND);
+		registerReceiver(mReceiver, discoveryFilter);
+
+		// Register for broadcasts when discovery has finished
+		IntentFilter foundFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+		this.registerReceiver(mReceiver, foundFilter);
+
+		// Get a set of currently paired devices
+		Set<BluetoothDevice> pairedDevices = mBtAdapter.getBondedDevices();
+
+		// If there are paired devices, add each one to the ArrayAdapter
+		if (pairedDevices.size() > 0) {
+			for (BluetoothDevice device : pairedDevices) {
+				mDataList.add(new SiriListItem(device.getName() + "\n" + device.getAddress(), true));
+				mAdapter.notifyDataSetChanged();
+				mListView.setSelection(mDataList.size() - 1);
+			}
+		} else {
+			mDataList.add(new SiriListItem("没有设备已经配对", true));
+			mAdapter.notifyDataSetChanged();
+			mListView.setSelection(mDataList.size() - 1);
+		}
+
+		seachButton = (Button) findViewById(R.id.start_seach);
+		seachButton.setOnClickListener(seachButtonClickListener);
+
+	}
+
+	private OnClickListener seachButtonClickListener = new OnClickListener() {
+		@Override
+		public void onClick(View arg0) {
+			if (mBtAdapter.isDiscovering()) {
+				mBtAdapter.cancelDiscovery();
+				seachButton.setText("重新搜索");
+			} else {
+				mDataList.clear();
+				mAdapter.notifyDataSetChanged();
+
+				Set<BluetoothDevice> pairedDevices = mBtAdapter
+						.getBondedDevices();
+				if (pairedDevices.size() > 0) {
+					for (BluetoothDevice device : pairedDevices) {
+						mDataList.add(new SiriListItem(device.getName() + "\n"
+								+ device.getAddress(), true));
+						mAdapter.notifyDataSetChanged();
+						mListView.setSelection(mDataList.size() - 1);
+					}
+				} else {
+					mDataList.add(new SiriListItem("No devices have been paired", true));
+					mAdapter.notifyDataSetChanged();
+					mListView.setSelection(mDataList.size() - 1);
+				}
+				/* 开始搜索 */
+				mBtAdapter.startDiscovery();
+				seachButton.setText("停止搜索");
+			}
+		}
+	};
+
+	// The on-click listener for all devices in the ListViews
+	private OnItemClickListener mDeviceClickListener = new OnItemClickListener() {
+		public void onItemClick(AdapterView<?> av, View v, int arg2, long arg3) {
+			// Cancel discovery because it's costly and we're about to connect
+
+			SiriListItem item = mDataList.get(arg2);
+			String info = item.message;
+			Log.v("tag", "info >> :" + info);
+			final String address = info.substring(info.length() - 17);
+			// Bluetooth.BlueToothAddress = address;
+
+			AlertDialog.Builder StopDialog = new AlertDialog.Builder(mContext);// 定义一个弹出框对象
+			StopDialog.setTitle("连接");// 标题
+			StopDialog.setMessage(item.message);
+			StopDialog.setPositiveButton("连接",
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int which) {
+							// TODO Auto-generated method stub
+							mBtAdapter.cancelDiscovery();
+							seachButton.setText("重新搜索");
+
+							if (!address.equals("null")) {
+								device = mBtAdapter.getRemoteDevice(address);
+								Log.v("tag", "device >> :" + device);
+								clientConnectThread = new clientThread();
+								clientConnectThread.start();
+							} else {
+								Toast.makeText(mContext, "address is null !",Toast.LENGTH_SHORT).show();
+							}
+						}
+					});
+			StopDialog.setNegativeButton("取消",
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
+			StopDialog.show();
+		}
+	};
+
+	// 开启客户端
+	private class clientThread extends Thread {
+		public void run() {
+			try {
+				// 创建一个Socket连接：只需要服务器在注册时的UUID号
+				// socket =
+				// device.createRfcommSocketToServiceRecord(BluetoothProtocols.OBEX_OBJECT_PUSH_PROTOCOL_UUID);
+//				socket = device.createRfcommSocketToServiceRecord(UUID
+//						.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+				//-------------------------
+				BluetoothSocket tmp = null;
+				Method method;
+				try {
+					method = device.getClass().getMethod("createRfcommSocket",new Class[] { int.class });
+					tmp = (BluetoothSocket) method.invoke(device, 1);
+				} catch (Exception e) {
+					Log.e("TAG", e.toString());
+					e.printStackTrace();
+				}
+				socket = tmp;
+				//-------------------------
+				// 连接
+				Message msg2 = new Message();
+				msg2.obj = "请稍候，正在连接服务器:";
+				msg2.what = 0;
+				LinkDetectedHandler.sendMessage(msg2);
+
+				socket.connect();
+
+				Message msg = new Message();
+				msg.obj = "已经连接上服务端！可以发送信息。";
+				msg.what = 0;
+				LinkDetectedHandler.sendMessage(msg);
+				// 启动接受数据
+				mreadThread = new readThread();
+				mreadThread.start();
+
+				sendMessageHandle("恭喜您蓝牙通讯成功!");
+			} catch (IOException e) {
+				e.printStackTrace();
+				Log.e("connect", "", e);
+				Message msg = new Message();
+				msg.obj = "连接服务端异常！断开连接重新试一试。";
+				msg.what = 0;
+				LinkDetectedHandler.sendMessage(msg);
+			}
+		}
+	};
+
+	// 发送数据
+	private void sendMessageHandle(String msg) {
+		if (socket == null) {
+			Toast.makeText(mContext, "没有连接", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		try {
+			OutputStream os = socket.getOutputStream();
+			os.write(msg.getBytes());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// The BroadcastReceiver that listens for discovered devices and
+	// changes the title when discovery is finished
+	private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			String action = intent.getAction();
+
+			// When discovery finds a device
+			if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+				// Get the BluetoothDevice object from the Intent
+				BluetoothDevice device = intent
+						.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+				// If it's already paired, skip it, because it's been listed
+				// already
+				if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
+					mDataList.add(new SiriListItem(device.getName() + "\n"
+							+ device.getAddress(), false));
+
+					mAdapter.notifyDataSetChanged();
+					mListView.setSelection(mDataList.size() - 1);
+				}
+				// When discovery is finished, change the Activity title
+			} else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED
+					.equals(action)) {
+				setProgressBarIndeterminateVisibility(false);
+				if (mListView.getCount() == 0) {
+					mDataList.add(new SiriListItem("没有发现蓝牙设备", false));
+					mAdapter.notifyDataSetChanged();
+					mListView.setSelection(mDataList.size() - 1);
+				}
+				seachButton.setText("重新搜索");
+			}
+		}
+	};
+
+	// 读取数据
+	private class readThread extends Thread {
+		public void run() {
+
+			byte[] buffer = new byte[1024];
+			int bytes;
+			InputStream mmInStream = null;
+
+			try {
+				mmInStream = socket.getInputStream();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			while (true) {
+				try {
+					// Read from the InputStream
+					if ((bytes = mmInStream.read(buffer)) > 0) {
+						byte[] buf_data = new byte[bytes];
+						for (int i = 0; i < bytes; i++) {
+							buf_data[i] = buffer[i];
+						}
+						String s = new String(buf_data);
+						Message msg = new Message();
+						msg.obj = s;
+						msg.what = 1;
+						LinkDetectedHandler.sendMessage(msg);
+					}
+				} catch (IOException e) {
+					try {
+						mmInStream.close();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	public class SiriListItem {
+		String message;
+		boolean isSiri;
+
+		public SiriListItem(String msg, boolean siri) {
+			message = msg;
+			isSiri = siri;
+		}
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		if (mBtAdapter != null) {
+			mBtAdapter.cancelDiscovery();
+		}
+		this.unregisterReceiver(mReceiver);
+	}
+}

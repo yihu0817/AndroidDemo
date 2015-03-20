@@ -1,0 +1,153 @@
+package com.scxh.bluetooth;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class ComminuteActivity extends Activity {
+	private BluetoothReceiver receiver;
+	private BluetoothAdapter bluetoothAdapter;
+	private List<String> devices;
+	private List<BluetoothDevice> deviceList;
+	private Bluetooth client;
+	private final String lockName = "BOLUTEK";
+	private String message = "scxh000001";
+	private ListView listView;
+	private TextView mShowMessageTxt;
+	private final Handler handler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case Bluetooth.CONNECT_FAILED:
+				Log.v("tag", "1111111111111");
+				Toast.makeText(ComminuteActivity.this, "连接失败",Toast.LENGTH_LONG).show();
+//				try {
+//					client.connect(message);
+//				} catch (Exception e) {
+//					Log.e("TAG", e.toString());
+//				}
+				break;
+			case Bluetooth.CONNECT_SUCCESS:
+				Toast.makeText(ComminuteActivity.this, "连接成功",Toast.LENGTH_LONG).show();
+				break;
+			case Bluetooth.READ_FAILED:
+				Toast.makeText(ComminuteActivity.this, "读取失败",
+						Toast.LENGTH_LONG).show();
+				break;
+			case Bluetooth.WRITE_FAILED:
+				Toast.makeText(ComminuteActivity.this, "写入失败",
+						Toast.LENGTH_LONG).show();
+				break;
+			case Bluetooth.DATA:
+				Toast.makeText(ComminuteActivity.this, msg.arg1 + "",Toast.LENGTH_LONG).show();
+				break;
+			default:
+				mShowMessageTxt.setText((String)msg.obj);
+			}
+		}
+	};
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.search_layout);
+
+		listView = (ListView) this.findViewById(R.id.list);
+		mShowMessageTxt = (TextView) this.findViewById(R.id.showMessageTxt);
+
+		deviceList = new ArrayList<BluetoothDevice>();
+		devices = new ArrayList<String>();
+
+		bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+		bluetoothAdapter.startDiscovery();// startDiscovery()方法是一个异步方法，它会对其他蓝牙设备进行搜索，持续时间为12秒。
+
+		showMessage("开始搜索蓝牙设备");
+		
+		IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+		receiver = new BluetoothReceiver();
+		registerReceiver(receiver, filter);
+
+//		listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//			@Override
+//			public void onItemClick(AdapterView<?> parent, View view,int position, long id) {
+//				setContentView(R.layout.connect_layout);
+//				bluetoothAdapter.cancelDiscovery();
+//				BluetoothDevice device = deviceList.get(position);
+//				client = new Bluetooth(device, handler);
+//				try {
+//					client.connect(message);
+//				} catch (Exception e) {
+//					Log.e("TAG", e.toString());
+//				}
+//			}
+//		});
+	}
+
+	@Override
+	protected void onDestroy() {
+		unregisterReceiver(receiver);
+		super.onDestroy();
+	}
+
+	private class BluetoothReceiver extends BroadcastReceiver {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			String action = intent.getAction();
+			showMessage("BluetoothReceiver :"+action);
+			if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+				BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+				showMessage("device :"+device);
+				if (isLock(device)) {
+					devices.add(device.getName());
+				}
+				deviceList.add(device);
+			} else {
+				showMessage("没有找到设备");
+			}
+			showDevices();
+		}
+	}
+
+	/**
+	 * 检查该设备是否是我们的目标设备，如果是，并且不是重复的就添加.
+	 * 
+	 * @param device
+	 * @return
+	 */
+	private boolean isLock(BluetoothDevice device) {
+		boolean isLockName = (device.getName()).equals(lockName);
+		boolean isSingleDevice = devices.indexOf(device.getName()) == -1;
+		return isLockName && isSingleDevice;
+	}
+
+	private void showDevices() {
+		showMessage("showDevices size :"+devices.size());
+		
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, devices);
+		listView.setAdapter(adapter);
+	}
+
+	private void showMessage(String data) {
+		Log.v("tag", "showMessage >>> :"+data);
+		Message msg = handler.obtainMessage();
+		msg.obj = data;
+		handler.sendMessage(msg);
+	}
+}

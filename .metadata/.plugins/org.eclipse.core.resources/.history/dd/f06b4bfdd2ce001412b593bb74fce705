@@ -1,0 +1,6 @@
+蓝牙通讯不加实现方式:
+ 1>Activity方式实现
+    ChatFragmentActivity类
+ 2>Service服务方式实现,根据调用方式不同又会两种形式:
+     1.ChatActivity + BlueClientService
+     2.ChatHandlerActivity + BlueClientHandlerService

@@ -1,0 +1,66 @@
+1426661572217	Copy compilation unit
+1426661604200	Copy files
+1426661629995	Copy files
+1426727859045	Rename type 'deviceListAdapter'
+1426727954632	Rename field 'sendButton'
+1426727977595	Rename field 'disconnectButton'
+1426727991808	Rename field 'editMsgView'
+1426728000385	Rename field 'mAdapter'
+1426728038390	Rename field 'list'
+1426728055617	Rename field 'mserverSocket'
+1426728064046	Rename field 'startServerThread'
+1426728069771	Rename field 'clientConnectThread'
+1426728079698	Rename field 'socket'
+1426728089119	Rename field 'device'
+1426728094389	Rename field 'mreadThread'
+1426728116662	Rename field 'LinkDetectedHandler'
+1426728275992	Rename field 'chat'
+1426728678815	Rename field 'list_item'
+1426728710961	Rename field 'chat_list_item'
+1426728721495	Rename field 'chat_list_item_layout'
+1426728837572	Rename field 'MessageText'
+1426728854233	Rename field 'sendMessageEdit'
+1426728880046	Rename field 'btn_msg_send'
+1426728993568	Rename type 'chatActivity'
+1426729003648	Rename type 'deviceActivity'
+1426729032196	Rename type 'clientThread'
+1426729179353	Rename method 'sendMessageHandle'
+1426729858254	Rename type 'readThread'
+1426730031051	Rename type 'ServerThread'
+1426730170117	Rename field 'devices'
+1426731755999	Rename package 'gjz.bluetooth'
+1426731921712	Rename field 'seachButton'
+1426731935237	Rename field 'serviceButton'
+1426731942788	Rename field 'mSeachBtn'
+1426731953801	Rename field 'mAdapter'
+1426731969105	Rename field 'mBtAdapter'
+1426731978434	Rename field 'mBlueAdapter'
+1426732158944	Delete element
+1426732186634	Rename type 'ChatListAdapter'
+1426732194443	Rename field 'mChatListAdapter'
+1426732260962	Delete element
+1426732281133	Rename type 'deviceListItem'
+1426732292380	Rename type 'DeviceListAdapter'
+1426733141849	Rename field 'list'
+1426733166014	Rename type 'SiriListItem'
+1426733522661	Rename method 'registerBroadcast'
+1426734512015	Rename local variable 'deviceAddressAndName'
+1426735433705	Rename local variable 'StopDialog'
+1426735619019	Rename field 'mReceiver'
+1426736606529	Delete element
+1426736801881	Rename type 'ChatActivity'
+1426736809121	Rename type 'DeviceActivity'
+1426743896660	Rename field 'mList'
+1426743900747	Rename field 'mTitleList'
+1426751389211	Rename type 'PlayerSerivceiBinder'
+1426751403522	Rename field 'mPlayerSerivceiBinder'
+1426751432823	Rename type 'IPlayerSerivice'
+1426752441506	Rename field 'mPlayerConnectService'
+1426752451733	Rename field 'mIPlayerSerivice'
+1426754425219	Rename field 'mAddress'
+1426813087261	Copy package
+1426813090849	Copy package
+1426813234215	Copy files
+1426813278223	Copy files
+1426813375567	Copy file
+1426835421180	Copy compilation unit

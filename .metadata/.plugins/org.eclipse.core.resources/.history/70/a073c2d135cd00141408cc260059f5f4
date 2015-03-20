@@ -1,0 +1,130 @@
+package com.scxh.bluetooth;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Method;
+import java.util.UUID;
+
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+
+public class Bluetooth {
+	public static final int CONNECT_FAILED = 0;//"连接失败";
+	public static final int CONNECT_SUCCESS = 1;//"连接成功";
+	public static final int WRITE_FAILED = 2;//"写数据失败";
+	public static final int READ_FAILED = 3;//"读数据失败";
+	public static final int DATA = 4;
+	private BluetoothSocket socket;
+	private BluetoothDevice device;
+	private boolean isConnect = false;
+	private Handler handler;
+	public Bluetooth(BluetoothDevice devices, Handler handlers) {
+		device = devices;
+		handler = handlers;
+	}
+
+	public void connect(final String message) {
+        Thread thread = new Thread(new Runnable() {
+            public void run() {
+                BluetoothSocket tmp = null;
+//                Method method;
+//                try {
+//                    method = device.getClass().getMethod("createRfcommSocket", new Class[]{int.class});
+//                    tmp = (BluetoothSocket) method.invoke(device, 1);
+//                } catch (Exception e) {
+//                    setState(CONNECT_FAILED);
+//                    Log.e("TAG", e.toString());
+//                }
+                
+                try {
+					tmp = device.createRfcommSocketToServiceRecord (UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				} 
+                
+                socket = tmp;
+                try {
+                    socket.connect();
+                    isConnect = true;
+                    setState(CONNECT_SUCCESS);
+                } catch (Exception e) {
+                    setState(CONNECT_FAILED);
+                    e.printStackTrace();
+                }
+                
+                sendReceiveMessage(message);
+                
+            }
+        });
+        
+        thread.start();
+	}
+	
+	private void sendReceiveMessage(String message){
+		 if (isConnect) {
+			
+             try {
+                 OutputStream outStream = socket.getOutputStream();
+                 outStream.write(getHexBytes(message));
+             } catch (IOException e) {
+                 setState(WRITE_FAILED);
+                 Log.e("TAG", e.toString());
+             }
+             try {
+                 InputStream inputStream = socket.getInputStream();
+                 int data;
+                 while (true) {
+                     try {
+                         data = inputStream.read();
+                         Message msg = handler.obtainMessage();
+                         msg.what = DATA;
+                         msg.arg1 = data;
+                         handler.sendMessage(msg);
+                     } catch (IOException e) {
+                         setState(READ_FAILED);
+                         Log.e("TAG", e.toString());
+                         break;
+                     }
+                 }
+             } catch (IOException e) {
+                 setState(WRITE_FAILED);
+                 Log.e("TAG", e.toString());
+             }
+         }
+
+         if (socket != null) {
+             try {
+                 socket.close();
+             } catch (IOException e) {
+                 Log.e("TAG", e.toString());
+             }
+         }
+	}
+	/**
+	 * 将字符串转化为16进制
+	 * @param message
+	 * @return
+	 */
+	private byte[] getHexBytes(String message) {
+        int len = message.length() / 2;
+        char[] chars = message.toCharArray();
+        String[] hexStr = new String[len];
+        byte[] bytes = new byte[len];
+        for (int i = 0, j = 0; j < len; i += 2, j++) {
+            hexStr[j] = "" + chars[i] + chars[i + 1];
+            bytes[j] = (byte) Integer.parseInt(hexStr[j], 16);
+        }
+        return bytes;
+	}
+	private void setState(int data){
+		 Message msg = handler.obtainMessage();
+         msg.what = DATA;
+         msg.arg1 = data;
+         handler.sendMessage(msg);
+	}
+		
+}

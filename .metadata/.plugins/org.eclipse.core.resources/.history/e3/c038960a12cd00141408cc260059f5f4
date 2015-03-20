@@ -1,0 +1,110 @@
+package com.scxh.bluetooth;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Method;
+
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+
+public class Bluetooth {
+	private static final String CONNECT_FAILED = "连接失败";
+	private static final String WRITE_FAILED = "写数据失败";
+	private static final String READ_FAILED = "读数据失败";
+	private BluetoothSocket socket;
+	private BluetoothDevice device;
+	private boolean isConnect;
+	private Handler handler;
+	public Bluetooth(BluetoothDevice devices, Handler handlers) {
+		device = devices;
+		handler = handlers;
+	}
+
+	public void connect(final String message) {
+        Thread thread = new Thread(new Runnable() {
+            public void run() {
+                BluetoothSocket tmp = null;
+                Method method;
+                try {
+                    method = device.getClass().getMethod("createRfcommSocket", new Class[]{int.class});
+                    tmp = (BluetoothSocket) method.invoke(device, 1);
+                } catch (Exception e) {
+                    setState(CONNECT_FAILED);
+                    Log.e("TAG", e.toString());
+                }
+                socket = tmp;
+                try {
+                    socket.connect();
+                    isConnect = true;
+                } catch (Exception e) {
+                    setState(CONNECT_FAILED);
+                    Log.e("TAG", e.toString());
+                }
+                sendReceiveMessage(message);
+                
+            }
+        });
+	}
+	
+	private void sendReceiveMessage(String message){
+		 if (isConnect) {
+             try {
+                 OutputStream outStream = socket.getOutputStream();
+                 outStream.write(getHexBytes(message));
+             } catch (IOException e) {
+                 setState(WRITE_FAILED);
+                 Log.e("TAG", e.toString());
+             }
+             try {
+                 InputStream inputStream = socket.getInputStream();
+                 int data;
+                 while (true) {
+                     try {
+                         data = inputStream.read();
+                         Message msg = handler.obtainMessage();
+                         msg.what = DATA;
+                         msg.arg1 = data;
+                         handler.sendMessage(msg);
+                     } catch (IOException e) {
+                         setState(READ_FAILED);
+                         Log.e("TAG", e.toString());
+                         break;
+                     }
+                 }
+             } catch (IOException e) {
+                 setState(WRITE_FAILED);
+                 Log.e("TAG", e.toString());
+             }
+         }
+
+         if (socket != null) {
+             try {
+                 socket.close();
+             } catch (IOException e) {
+                 Log.e("TAG", e.toString());
+             }
+         }
+	}
+	private byte[] getHexBytes(String message) {
+        int len = message.length() / 2;
+        char[] chars = message.toCharArray();
+        String[] hexStr = new String[len];
+        byte[] bytes = new byte[len];
+        for (int i = 0, j = 0; j < len; i += 2, j++) {
+            hexStr[j] = "" + chars[i] + chars[i + 1];
+            bytes[j] = (byte) Integer.parseInt(hexStr[j], 16);
+        }
+        return bytes;
+	}
+	private void setState(String DATA){
+		 Message msg = handler.obtainMessage();
+         msg.what = DATA;
+         msg.arg1 = data;
+         handler.sendMessage(msg);
+	}
+		
+}

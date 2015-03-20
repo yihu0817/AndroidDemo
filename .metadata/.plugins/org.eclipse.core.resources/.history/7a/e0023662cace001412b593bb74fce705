@@ -1,0 +1,297 @@
+package com.warmtel.bluetooth.service;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Method;
+import java.util.UUID;
+
+import android.annotation.SuppressLint;
+import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.Build;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.util.Log;
+import android.widget.Toast;
+
+import com.warmtel.bluetooth.R;
+import com.warmtel.bluetooth.util.Constances;
+
+@SuppressLint("NewApi")
+public class BlueClientService extends Service {
+	private static final String PROTOCOL_SCHEME_RFCOMM = "btspp";
+	public static final String UUIDS = "00001101-0000-1000-8000-00805F9B34FB";
+	private BluetoothServerSocket mBlueServerSocket = null;
+	private ServiceThread mStartServerThread = null;
+	private ClientThread mClientConnectThread = null;
+	private BluetoothSocket mBlueSocket = null;
+	private BluetoothDevice mBlueDevice = null;
+	private ReadThread mReadThread = null;
+	private Handler mMessageHandler;
+	private BluetoothAdapter mBluetoothAdapter = BluetoothAdapter
+			.getDefaultAdapter();
+	private BluetoothSerivceiBinder mBluetoothSerivceiBinder = new BluetoothSerivceiBinder();
+	private Context mContext;
+	private int mServerOrCleintType;
+	public String mBlueToothAddress = "";
+
+	public interface IBluetoothSerivice {
+		public void sendMessage(String msg);
+
+		public void setHandler(Handler handler);
+
+		public void shutdownClientThread();
+
+		public void shutdownServerThread();
+
+		public void disConnection();
+
+		public void startClientThread(String address);
+
+		public void startServerThread();
+	}
+
+	class BluetoothSerivceiBinder extends Binder implements IBluetoothSerivice {
+
+		@Override
+		public void setHandler(Handler handler) {
+			mMessageHandler = handler;
+		}
+
+		@Override
+		public void sendMessage(String msg) {
+			if (mBlueSocket == null) {
+				Toast.makeText(mContext,
+						getString(R.string.chat_no_connection_message),
+						Toast.LENGTH_SHORT).show();
+				return;
+			}
+			try {
+				OutputStream os = mBlueSocket.getOutputStream();
+				os.write(msg.getBytes());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			setStateMsg(msg, 0);
+		}
+
+		@Override
+		public void shutdownClientThread() {
+			new Thread() {
+				public void run() {
+					if (mClientConnectThread != null) {
+						mClientConnectThread.interrupt();
+						mClientConnectThread = null;
+					}
+					if (mReadThread != null) {
+						mReadThread.interrupt();
+						mReadThread = null;
+					}
+					if (mBlueSocket != null) {
+						try {
+							mBlueSocket.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						mBlueSocket = null;
+					}
+				};
+			}.start();
+		}
+
+		@Override
+		public void shutdownServerThread() {
+			new Thread() {
+				public void run() {
+					if (mStartServerThread != null) {
+						mStartServerThread.interrupt();
+						mStartServerThread = null;
+					}
+					if (mReadThread != null) {
+						mReadThread.interrupt();
+						mReadThread = null;
+					}
+					try {
+						if (mBlueSocket != null) {
+							mBlueSocket.close();
+							mBlueSocket = null;
+						}
+						if (mBlueServerSocket != null) {
+							mBlueServerSocket.close();
+							mBlueServerSocket = null;
+						}
+					} catch (IOException e) {
+						Log.e("server", "mserverSocket.close()", e);
+					}
+				};
+			}.start();
+		}
+
+		@Override
+		public void disConnection() {
+			if (mServerOrCleintType == Constances.CLIENT_TYPE) {
+				shutdownClientThread();
+			} else {
+				shutdownServerThread();
+			}
+
+		}
+
+		@Override
+		public void startClientThread(String address) {
+			if (!address.equals("null")) {
+				mBlueDevice = mBluetoothAdapter.getRemoteDevice(address);
+				mClientConnectThread = new ClientThread();
+				mClientConnectThread.start();
+			} else {
+				Toast.makeText(mContext, "address is null !",
+						Toast.LENGTH_SHORT).show();
+			}
+		}
+
+		@Override
+		public void startServerThread() {
+			mStartServerThread = new ServiceThread();
+			mStartServerThread.start();
+		}
+
+	}
+
+	@Override
+	public void onCreate() {
+		super.onCreate();
+		mContext = this;
+
+	}
+
+	@Override
+	public IBinder onBind(Intent intent) {
+		return mBluetoothSerivceiBinder;
+	}
+
+	private void setStateMsg(String obj, int what) {
+		Message msg = Message.obtain();
+		msg.obj = obj;
+		msg.what = what;
+		mMessageHandler.sendMessage(msg);
+	}
+
+	class ClientThread extends Thread {
+		public void run() {
+			try {
+				// 创建一个Socket连接：只需要服务器在注册时的UUID号
+				int sdk = Integer.parseInt(Build.VERSION.SDK);
+				if (sdk >= 10) {
+					mBlueSocket = mBlueDevice.createInsecureRfcommSocketToServiceRecord(UUID.fromString(UUIDS));
+				} else {
+					mBlueSocket = mBlueDevice.createRfcommSocketToServiceRecord(UUID.fromString(UUIDS));
+				}
+
+//				Method method;
+//				try {
+//					method = mBlueDevice.getClass().getMethod(
+//							"createRfcommSocket", new Class[] { int.class });
+//					mBlueSocket = (BluetoothSocket) method.invoke(mBlueDevice,
+//							1);
+//				} catch (Exception e) {
+//					Log.e("TAG", e.toString());
+//				}
+
+				setStateMsg(getString(R.string.chat_connectioning_message), 0);
+
+				mBlueSocket.connect();
+
+				setStateMsg(
+						getString(R.string.chat_connectioned_sendok_message), 0);
+
+				mReadThread = new ReadThread();
+				mReadThread.start();
+
+			} catch (IOException e) {
+				e.printStackTrace();
+				setStateMsg(getString(R.string.chat_connection_error_message),
+						0);
+			}
+		}
+	};
+
+	class ServiceThread extends Thread {
+		public void run() {
+
+			try {
+				/*
+				 * 创建一个蓝牙服务器 参数分别：服务器名称、UUID
+				 */
+				mBlueServerSocket = mBluetoothAdapter
+						.listenUsingRfcommWithServiceRecord(
+								PROTOCOL_SCHEME_RFCOMM, UUID.fromString(UUIDS));
+
+				setStateMsg(
+						getString(R.string.chat_please_client_connectioning_message),
+						0);
+				/* 接受客户端的连接请求 */
+				mBlueSocket = mBlueServerSocket.accept();
+
+				setStateMsg(
+						getString(R.string.chat_client_connection_success_message),
+						0);
+
+				mReadThread = new ReadThread();
+				mReadThread.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	};
+
+	// 接受数据
+	class ReadThread extends Thread {
+		public void run() {
+
+			byte[] buffer = new byte[1024];
+			int bytes;
+			InputStream mmInStream = null;
+
+			try {
+				mmInStream = mBlueSocket.getInputStream();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			while (true) {
+				try {
+					// Read from the InputStream
+					if ((bytes = mmInStream.read(buffer)) > 0) {
+						byte[] buf_data = new byte[bytes];
+						for (int i = 0; i < bytes; i++) {
+							buf_data[i] = buffer[i];
+						}
+						String s = new String(buf_data);
+						setStateMsg(s, 1);
+					}
+				} catch (IOException e) {
+					try {
+						mmInStream.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		mBluetoothSerivceiBinder.disConnection();
+	}
+}

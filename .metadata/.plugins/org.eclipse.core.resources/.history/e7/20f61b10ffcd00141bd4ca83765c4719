@@ -1,0 +1,442 @@
+package com.scxh.bluetooth;
+/**
+ * 蓝牙通讯核心类：
+ * 1.实现蓝牙客户端与服务端连接.
+ * 2.实现信息收发显示.
+ * 3.ClientThread蓝牙客户端线程发起连接请求.
+ * 4.ServiceThread蓝牙服务端线程等待连接请求.
+ * 5.ReadThread线程监听接收数据.
+ * 6.mMessageHandler负责线程间数据传输显示.
+ */
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.UUID;
+
+import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.support.v4.app.Fragment;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.scxh.bluetooth.Bluetooth.ServerOrCilent;
+
+@SuppressLint({ "NewApi", "HandlerLeak" })
+public class ChatFragment extends Fragment implements OnClickListener {
+	private ListView mListView;
+	private ArrayList<DeviceListItem> mDeviceLists;
+	private Button mSendBtn;
+	private Button mDisConnectBtn;
+	private EditText mEditMsgEdit;
+	private ChatListAdapter mDeviceListAdapter;
+	private Context mContext;
+
+	/* 一些常量，代表服务器的名称 */
+	public static final String PROTOCOL_SCHEME_L2CAP = "btl2cap";
+	public static final String PROTOCOL_SCHEME_RFCOMM = "btspp";
+	public static final String PROTOCOL_SCHEME_BT_OBEX = "btgoep";
+	public static final String PROTOCOL_SCHEME_TCP_OBEX = "tcpobex";
+
+	private BluetoothServerSocket mBlueServerSocket = null;
+	private ServiceThread mStartServerThread = null;
+	private ClientThread mClientConnectThread = null;
+	private BluetoothSocket mBlueSocket = null;
+	private BluetoothDevice mBlueDevice = null;
+	private ReadThread mReadThread = null;
+	private BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+	private Handler mMessageHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			if (msg.what == 1) {
+				mDeviceLists.add(new DeviceListItem((String) msg.obj, true));
+			} else {
+				mDeviceLists.add(new DeviceListItem((String) msg.obj, false));
+			}
+			mDeviceListAdapter.notifyDataSetChanged();
+			mListView.setSelection(mDeviceLists.size() - 1);
+		}
+
+	};
+	public static ChatFragment newInstance() {
+		ChatFragment frag = new ChatFragment();
+		return frag;
+	}
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup container,Bundle savedInstanceState) {
+		Log.v("tag", "ChatFragment onCreateView ");
+		return inflater.inflate(R.layout.chatlayout, container, false);
+	}
+	@Override
+	public void onActivityCreated(Bundle savedInstanceState) {
+		super.onActivityCreated(savedInstanceState);
+		Log.v("tag", "ChatFragment onActivityCreated ");
+		mContext = getActivity();
+		
+		mDeviceLists = new ArrayList<DeviceListItem>();
+		mDeviceListAdapter = new ChatListAdapter(mContext, mDeviceLists);
+
+		mListView = (ListView) getView().findViewById(R.id.list);
+		mListView.setAdapter(mDeviceListAdapter);
+		mListView.setFastScrollEnabled(true);
+
+		mEditMsgEdit = (EditText) getView().findViewById(R.id.send_message_edit);
+		mEditMsgEdit.clearFocus();
+
+		mSendBtn = (Button) getView().findViewById(R.id.send_message_btn);
+		mSendBtn.setOnClickListener(this);
+
+		mDisConnectBtn = (Button) getView().findViewById(R.id.btn_disconnect);
+		mDisConnectBtn.setOnClickListener(this);
+	}
+
+	@Override
+	public synchronized void onResume() {
+		super.onResume();
+		Log.v("tag", "ChatFragment onResume ");
+		if (Bluetooth.isOpen) {
+			Toast.makeText(mContext, "连接已经打开，可以通信。如果要再建立连接，请先断开！",Toast.LENGTH_SHORT).show();
+			return;
+		}
+		if (Bluetooth.serviceOrCilent == ServerOrCilent.CILENT) {
+			String address = Bluetooth.BlueToothAddress;
+			if (!address.equals("null")) {
+				mBlueDevice = mBluetoothAdapter.getRemoteDevice(address);
+				mClientConnectThread = new ClientThread();
+				mClientConnectThread.start();
+				Bluetooth.isOpen = true;
+			} else {
+				Toast.makeText(mContext, "address is null !",Toast.LENGTH_SHORT).show();
+			}
+		} else if (Bluetooth.serviceOrCilent == ServerOrCilent.SERVICE) {
+			mStartServerThread = new ServiceThread();
+			mStartServerThread.start();
+			Bluetooth.isOpen = true;
+		}
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+
+		if (Bluetooth.serviceOrCilent == ServerOrCilent.CILENT) {
+			shutdownClient();
+		} else if (Bluetooth.serviceOrCilent == ServerOrCilent.SERVICE) {
+			shutdownServer();
+		}
+		Bluetooth.isOpen = false;
+		Bluetooth.serviceOrCilent = ServerOrCilent.NONE;
+	}
+
+	@Override
+	public void onClick(View v) {
+		switch(v.getId()){
+		case R.id.send_message_btn:
+			String msgText = mEditMsgEdit.getText().toString();
+			if (msgText.length() > 0) {
+				sendMessage(msgText);
+				mEditMsgEdit.setText("");
+				mEditMsgEdit.clearFocus();
+				// close InputMethodManager
+				InputMethodManager imm = (InputMethodManager) mContext.getSystemService(Context.INPUT_METHOD_SERVICE);
+				imm.hideSoftInputFromWindow(mEditMsgEdit.getWindowToken(),0);
+			} else
+				Toast.makeText(mContext, "发送内容不能为空！", Toast.LENGTH_SHORT).show();
+			break;
+		case R.id.btn_disconnect:
+			if (Bluetooth.serviceOrCilent == ServerOrCilent.CILENT) {
+				shutdownClient();
+			} else if (Bluetooth.serviceOrCilent == ServerOrCilent.SERVICE) {
+				shutdownServer();
+			}
+			Bluetooth.isOpen = false;
+			Bluetooth.serviceOrCilent = ServerOrCilent.NONE;
+			Toast.makeText(mContext, "已断开连接！", Toast.LENGTH_SHORT).show();
+			break;
+		}
+	}
+
+	// 发送数据
+	private void sendMessage(String msg) {
+		if (mBlueSocket == null) {
+			Toast.makeText(mContext, "没有连接", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		try {
+			OutputStream os = mBlueSocket.getOutputStream();
+			os.write(msg.getBytes());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		mDeviceLists.add(new DeviceListItem(msg, false));
+		mDeviceListAdapter.notifyDataSetChanged();
+		mListView.setSelection(mDeviceLists.size() - 1);
+	}
+
+	/* 停止服务器 */
+	private void shutdownServer() {
+		new Thread() {
+			public void run() {
+				if (mStartServerThread != null) {
+					mStartServerThread.interrupt();
+					mStartServerThread = null;
+				}
+				if (mReadThread != null) {
+					mReadThread.interrupt();
+					mReadThread = null;
+				}
+				try {
+					if (mBlueSocket != null) {
+						mBlueSocket.close();
+						mBlueSocket = null;
+					}
+					if (mBlueServerSocket != null) {
+						mBlueServerSocket.close();/* 关闭服务器 */
+						mBlueServerSocket = null;
+					}
+				} catch (IOException e) {
+					Log.e("server", "mserverSocket.close()", e);
+				}
+			};
+		}.start();
+	}
+
+	/* 停止客户端连接 */
+	private void shutdownClient() {
+		new Thread() {
+			public void run() {
+				if (mClientConnectThread != null) {
+					mClientConnectThread.interrupt();
+					mClientConnectThread = null;
+				}
+				if (mReadThread != null) {
+					mReadThread.interrupt();
+					mReadThread = null;
+				}
+				if (mBlueSocket != null) {
+					try {
+						mBlueSocket.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					mBlueSocket = null;
+				}
+			};
+		}.start();
+	}
+
+	// 开启客户端
+	class ClientThread extends Thread {
+		public void run() {
+			try {
+				// 创建一个Socket连接：只需要服务器在注册时的UUID号
+				// socket =
+				// device.createRfcommSocketToServiceRecord(BluetoothProtocols.OBEX_OBJECT_PUSH_PROTOCOL_UUID);
+				// socket =
+				// device.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+				UUID uuid = UUID
+						.fromString("00001101-0000-1000-8000-00805F9B34FB");
+				int sdk = Integer.parseInt(Build.VERSION.SDK);
+				if (sdk >= 10) {
+					mBlueSocket = mBlueDevice
+							.createInsecureRfcommSocketToServiceRecord(uuid);
+				} else {
+					mBlueSocket = mBlueDevice
+							.createRfcommSocketToServiceRecord(uuid);
+				}
+
+				// 连接
+				Message msg2 = new Message();
+				msg2.obj = "请稍候，正在连接服务器:" + Bluetooth.BlueToothAddress;
+				msg2.what = 0;
+				mMessageHandler.sendMessage(msg2);
+
+				mBlueSocket.connect();
+
+				Message msg = new Message();
+				msg.obj = "已经连接上服务端！可以发送信息。";
+				msg.what = 0;
+				mMessageHandler.sendMessage(msg);
+				// 启动接受数据
+				mReadThread = new ReadThread();
+				mReadThread.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+				Message msg = new Message();
+				msg.obj = "连接服务端异常！断开连接重新试一试。";
+				msg.what = 0;
+				mMessageHandler.sendMessage(msg);
+			}
+		}
+	};
+
+	// 开启服务器
+	class ServiceThread extends Thread {
+		public void run() {
+
+			try {
+				/*
+				 * 创建一个蓝牙服务器 参数分别：服务器名称、UUID
+				 */
+				mBlueServerSocket = mBluetoothAdapter
+						.listenUsingRfcommWithServiceRecord(
+								PROTOCOL_SCHEME_RFCOMM,
+								UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+
+				Log.d("server", "wait cilent connect...");
+
+				Message msg = new Message();
+				msg.obj = "请稍候，正在等待客户端的连接...";
+				msg.what = 0;
+				mMessageHandler.sendMessage(msg);
+
+				/* 接受客户端的连接请求 */
+				mBlueSocket = mBlueServerSocket.accept();
+				Log.d("server", "accept success !");
+
+				Message msg2 = new Message();
+				String info = "客户端已经连接上！可以发送信息。";
+				msg2.obj = info;
+				msg.what = 0;
+				mMessageHandler.sendMessage(msg2);
+				// 启动接受数据
+				mReadThread = new ReadThread();
+				mReadThread.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	};
+
+	// 读取数据
+	class ReadThread extends Thread {
+		public void run() {
+
+			byte[] buffer = new byte[1024];
+			int bytes;
+			InputStream mmInStream = null;
+
+			try {
+				mmInStream = mBlueSocket.getInputStream();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			while (true) {
+				try {
+					// Read from the InputStream
+					if ((bytes = mmInStream.read(buffer)) > 0) {
+						byte[] buf_data = new byte[bytes];
+						for (int i = 0; i < bytes; i++) {
+							buf_data[i] = buffer[i];
+						}
+						String s = new String(buf_data);
+						Message msg = new Message();
+						msg.obj = s;
+						msg.what = 1;
+						mMessageHandler.sendMessage(msg);
+					}
+				} catch (IOException e) {
+					try {
+						mmInStream.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	public class SiriListItem {
+		String message;
+		boolean isSiri;
+
+		public SiriListItem(String msg, boolean siri) {
+			message = msg;
+			isSiri = siri;
+		}
+	}
+
+	public class DeviceListItem {
+		String message;
+		boolean isSiri;
+
+		public DeviceListItem(String msg, boolean siri) {
+			message = msg;
+			isSiri = siri;
+		}
+	}
+	public class ChatListAdapter extends BaseAdapter {
+		private ArrayList<DeviceListItem> list;
+		private LayoutInflater mInflater;
+
+		public ChatListAdapter(Context context, ArrayList<DeviceListItem> l) {
+			list = l;
+			mInflater = LayoutInflater.from(context);
+		}
+
+		public int getCount() {
+			return list.size();
+		}
+
+		public Object getItem(int position) {
+			return list.get(position);
+		}
+
+		public long getItemId(int position) {
+			return position;
+		}
+
+		public int getItemViewType(int position) {
+			return position;
+		}
+
+		public View getView(int position, View convertView, ViewGroup parent) {
+			ViewHolder viewHolder = null;
+			DeviceListItem item = (DeviceListItem) getItem(position);
+			if (convertView == null) {
+				viewHolder = new ViewHolder();
+				convertView = mInflater.inflate(R.layout.chat_item_layout, null);
+				View view = (View) convertView.findViewById(R.id.list_child);
+				TextView msgTxt = (TextView) convertView.findViewById(R.id.chat_msg);
+				viewHolder.child = view;
+				viewHolder.msg = msgTxt;
+				convertView.setTag(viewHolder);
+			} else {
+				viewHolder = (ViewHolder) convertView.getTag();
+			}
+
+			if (item.isSiri) {
+				viewHolder.child.setBackgroundResource(R.drawable.msgbox_rec);
+			} else {
+				viewHolder.child.setBackgroundResource(R.drawable.msgbox_send);
+			}
+			viewHolder.msg.setText(item.message);
+
+			return convertView;
+		}
+
+		class ViewHolder {
+			protected View child;
+			protected TextView msg;
+		}
+	}
+}

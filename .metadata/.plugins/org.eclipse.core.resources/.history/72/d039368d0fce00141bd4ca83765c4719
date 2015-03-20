@@ -1,0 +1,5 @@
+package com.scxh.bluetooth.bean;
+
+public class DeviceListItem {
+
+}

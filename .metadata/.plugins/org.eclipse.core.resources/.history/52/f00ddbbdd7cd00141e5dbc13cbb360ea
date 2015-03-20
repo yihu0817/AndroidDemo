@@ -1,0 +1,69 @@
+package gjz.bluetooth;
+
+import gjz.bluetooth.R;
+import gjz.bluetooth.chatActivity.deviceListItem;
+import java.util.ArrayList;
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.TextView;
+
+@SuppressLint("InflateParams")
+public class DeviceListAdapter extends BaseAdapter {
+	private ArrayList<deviceListItem> list;
+	private LayoutInflater mInflater;
+
+	public DeviceListAdapter(Context context, ArrayList<deviceListItem> l) {
+		list = l;
+		mInflater = LayoutInflater.from(context);
+	}
+
+	public int getCount() {
+		return list.size();
+	}
+
+	public Object getItem(int position) {
+		return list.get(position);
+	}
+
+	public long getItemId(int position) {
+		return position;
+	}
+
+	public int getItemViewType(int position) {
+		return position;
+	}
+
+	public View getView(int position, View convertView, ViewGroup parent) {
+		ViewHolder viewHolder = null;
+		deviceListItem item = (deviceListItem) getItem(position);
+		if (convertView == null) {
+			viewHolder = new ViewHolder();
+			convertView = mInflater.inflate(R.layout.chat_list_item_layout, null);
+			View view = (View) convertView.findViewById(R.id.list_child);
+			TextView msgTxt = (TextView) convertView.findViewById(R.id.chat_msg);
+			viewHolder.child = view;
+			viewHolder.msg = msgTxt;
+			convertView.setTag(viewHolder);
+		} else {
+			viewHolder = (ViewHolder) convertView.getTag();
+		}
+
+		if (item.isSiri) {
+			viewHolder.child.setBackgroundResource(R.drawable.msgbox_rec);
+		} else {
+			viewHolder.child.setBackgroundResource(R.drawable.msgbox_send);
+		}
+		viewHolder.msg.setText(item.message);
+
+		return convertView;
+	}
+
+	class ViewHolder {
+		protected View child;
+		protected TextView msg;
+	}
+}

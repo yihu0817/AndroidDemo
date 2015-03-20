@@ -1,0 +1,11 @@
+package com.scxh.bluetooth.bean;
+
+public class DeviceListItem {
+	String message;
+	boolean isSiri;
+
+	public DeviceListItem(String msg, boolean siri) {
+		message = msg;
+		isSiri = siri;
+	}
+}

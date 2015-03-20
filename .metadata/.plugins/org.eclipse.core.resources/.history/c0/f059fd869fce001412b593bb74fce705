@@ -1,0 +1,6 @@
+<resources>
+
+    <string name="app_name">AndroidBluetooth</string>
+    <string name="device_reconnect_btn">"重新搜索"</string>
+
+</resources>

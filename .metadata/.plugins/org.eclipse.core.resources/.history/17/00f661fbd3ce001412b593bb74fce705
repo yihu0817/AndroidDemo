@@ -1,0 +1,5 @@
+package com.warmtel.bluetooth.util;
+
+public class BluetoothManager {
+
+}

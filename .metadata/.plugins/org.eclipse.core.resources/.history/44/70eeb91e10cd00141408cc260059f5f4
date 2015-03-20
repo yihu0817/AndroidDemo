@@ -1,0 +1,10 @@
+package com.scxh.bluetooth;
+
+import android.bluetooth.BluetoothDevice;
+import android.os.Handler;
+
+public class Bluetooth {
+	public Bluetooth(BluetoothDevice device, Handler handler) {
+		super();
+	}
+}

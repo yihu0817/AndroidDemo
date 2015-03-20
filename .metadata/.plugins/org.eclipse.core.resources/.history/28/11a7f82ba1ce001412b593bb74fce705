@@ -1,0 +1,11 @@
+package com.warmtel.bluetooth.bean;
+
+public class DeviceItem {
+	public String message;
+	public boolean isSiri;
+
+	public DeviceItem(String msg, boolean siri) {
+		message = msg;
+		isSiri = siri;
+	}
+}

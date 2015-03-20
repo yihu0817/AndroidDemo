@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.Bluetooth"/>
+<fullyQualifiedTypeName name="android.widget.Button"/>
+<fullyQualifiedTypeName name="com.scxh.bluetoothservice.R.id"/>
+<fullyQualifiedTypeName name="gjz.bluetooth.R.id"/>
+<fullyQualifiedTypeName name="android.widget.AdapterView.OnItemClickListener"/>
+<fullyQualifiedTypeName name="android.view.View.OnClickListener"/>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.R.id"/>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.R.layout"/>
+<fullyQualifiedTypeName name="android.support.v4.app.FragmentManager"/>
+<fullyQualifiedTypeName name="android.support.v4.app.Fragment"/>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.ChatFragment"/>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.DeviceFragment"/>
+<fullyQualifiedTypeName name="java.lang.Override"/>
+<fullyQualifiedTypeName name="android.os.Handler"/>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.bean.DeviceListItem"/>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.ChatActivity"/>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.Constances.ServerOrCilent"/>
+<fullyQualifiedTypeName name="com.scxh.bluetooth.Constances"/>
+<fullyQualifiedTypeName name="android.util.Log"/>
+<fullyQualifiedTypeName name="com.warmtel.androidbluetooth.R"/>
+<fullyQualifiedTypeName name="com.warmtel.bluetooth.R"/>
+<fullyQualifiedTypeName name="com.warmtel.bluetooth.R.string"/>
+<fullyQualifiedTypeName name="android.view.Window"/>
+<fullyQualifiedTypeName name="android.widget.ProgressBar"/>
+<fullyQualifiedTypeName name="com.warmtel.bluetooth.R.id"/>
+<fullyQualifiedTypeName name="android.app.IntentService"/>
+<fullyQualifiedTypeName name="com.warmtel.bluetooth.service.BlueClientHandlerService"/>
+<fullyQualifiedTypeName name="com.warmtel.bluetooth.service.BlueClientHandlerService.IBluetoothSerivice"/>
+<fullyQualifiedTypeName name="com.warmtel.bluetooth.util.Constances"/>
+<fullyQualifiedTypeName name="com.warmtel.bluetooth.ChatFragmentActivity.ServiceThread"/>
+<fullyQualifiedTypeName name="com.warmtel.bluetooth.util.Logs"/>
+</qualifiedTypeNameHistroy>

@@ -1,0 +1,222 @@
+package com.warmtel.bluetooth;
+/**
+ * 蓝牙通讯核心类：
+ * 1.实现蓝牙客户端与服务端连接.
+ * 2.实现信息收发显示.
+ * 3.ClientThread蓝牙客户端线程发起连接请求.
+ * 4.ServiceThread蓝牙服务端线程等待连接请求.
+ * 5.ReadThread线程监听接收数据.
+ * 6.mMessageHandler负责线程间数据传输显示.
+ */
+import java.util.ArrayList;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.warmtel.bluetooth.bean.DeviceItem;
+import com.warmtel.bluetooth.service.BlueClientService;
+import com.warmtel.bluetooth.service.BlueClientService.IBluetoothSerivice;
+import com.warmtel.bluetooth.util.Constances;
+
+@SuppressLint({ "NewApi", "HandlerLeak" })
+public class ChatActivity extends Activity implements OnClickListener {
+	private ListView mListView;
+	private ArrayList<DeviceItem> mDeviceLists;
+	private Button mSendBtn;
+	private Button mDisConnectBtn;
+	private EditText mEditMsgEdit;
+	private ChatListAdapter mDeviceListAdapter;
+	private Context mContext;
+
+	private IBluetoothSerivice mIBluetoothSerivice;
+	private String mBluetoothAddress;
+	private int mServerOrClientType;
+	
+	private Handler mMessageHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			if (msg.what == 1) {
+				mDeviceLists.add(new DeviceItem((String) msg.obj, true));
+			} else {
+				mDeviceLists.add(new DeviceItem((String) msg.obj, false));
+			}
+			mDeviceListAdapter.notifyDataSetChanged();
+			mListView.setSelection(mDeviceLists.size() - 1);
+		}
+
+	};
+	public ServiceConnection mBluetoothConnectService = new ServiceConnection() {
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service) {
+			mIBluetoothSerivice = (IBluetoothSerivice) service;
+
+			mIBluetoothSerivice.setHandler(mMessageHandler);
+			mIBluetoothSerivice.setAddress(mBluetoothAddress);
+			if(mServerOrClientType == Constances.CLIENT_TYPE){//启动客户端
+				mIBluetoothSerivice.startClient();
+			}else{
+				mIBluetoothSerivice.startServer();
+			}
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName name) {
+			mIBluetoothSerivice = null;
+		}
+	};
+	public static void actionServerChatActivity(Context context){
+		Intent intent = new Intent(context,ChatActivity.class);
+		intent.putExtra("TYPE", Constances.SERVER_TYPE);
+		intent.putExtra("ADDRESS", "");
+		context.startActivity(intent);
+	}
+	public static void actionClientChatActivity(Context context,String address){
+		Intent intent = new Intent(context,ChatActivity.class);
+		intent.putExtra("TYPE", Constances.CLIENT_TYPE);
+		intent.putExtra("ADDRESS", address);
+		context.startActivity(intent);
+	}
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.chat_layout);
+		mContext = this;
+		
+		mServerOrClientType = getIntent()!=null?getIntent().getIntExtra("TYPE", -1):-1;
+		mBluetoothAddress = getIntent()!=null?getIntent().getStringExtra("ADDRESS"):"";
+		Log.v("tag", "mBluetoothAddress  :"+mBluetoothAddress);
+		mDeviceLists = new ArrayList<DeviceItem>();
+		mDeviceListAdapter = new ChatListAdapter(this, mDeviceLists);
+
+		mListView = (ListView) findViewById(R.id.list);
+		mListView.setAdapter(mDeviceListAdapter);
+		mListView.setFastScrollEnabled(true);
+
+		mEditMsgEdit = (EditText) findViewById(R.id.send_message_edit);
+		mEditMsgEdit.clearFocus();
+
+		mSendBtn = (Button) findViewById(R.id.send_message_btn);
+		mSendBtn.setOnClickListener(this);
+
+		mDisConnectBtn = (Button) findViewById(R.id.btn_disconnect);
+		mDisConnectBtn.setOnClickListener(this);
+		
+		Intent intent = new Intent(this, BlueClientService.class);
+		intent.putExtra("TYPE", mServerOrClientType);
+		intent.putExtra("ADDRESS", mBluetoothAddress);
+		bindService(intent, mBluetoothConnectService, BIND_AUTO_CREATE);
+	}
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		if (mBluetoothConnectService != null) {
+			unbindService(mBluetoothConnectService);
+		}
+	}
+
+	@Override
+	public void onClick(View v) {
+		switch(v.getId()){
+		case R.id.send_message_btn:
+			String msgText = mEditMsgEdit.getText().toString();
+			if (msgText.length() > 0) {
+				mIBluetoothSerivice.sendMessage(msgText);
+				mEditMsgEdit.setText("");
+				mEditMsgEdit.clearFocus();
+				// close InputMethodManager
+				InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+				imm.hideSoftInputFromWindow(mEditMsgEdit.getWindowToken(),0);
+			} else
+				Toast.makeText(mContext, "发送内容不能为空！", Toast.LENGTH_SHORT).show();
+			break;
+		case R.id.btn_disconnect:
+			if(mIBluetoothSerivice!=null){
+				mIBluetoothSerivice.disConnection();
+			}
+			Toast.makeText(mContext, "已断开连接！", Toast.LENGTH_SHORT).show();
+			break;
+		}
+	}
+
+	public class ChatListAdapter extends BaseAdapter {
+		private ArrayList<DeviceItem> list;
+		private LayoutInflater mInflater;
+
+		public ChatListAdapter(Context context, ArrayList<DeviceItem> l) {
+			list = l;
+			mInflater = LayoutInflater.from(context);
+		}
+
+		public int getCount() {
+			return list.size();
+		}
+
+		public Object getItem(int position) {
+			return list.get(position);
+		}
+
+		public long getItemId(int position) {
+			return position;
+		}
+
+		public int getItemViewType(int position) {
+			return position;
+		}
+
+		public View getView(int position, View convertView, ViewGroup parent) {
+			ViewHolder viewHolder = null;
+			DeviceItem item = (DeviceItem) getItem(position);
+			if (convertView == null) {
+				viewHolder = new ViewHolder();
+				convertView = mInflater.inflate(R.layout.chat_item_layout, null);
+				View view = (View) convertView.findViewById(R.id.list_child);
+				TextView msgTxt = (TextView) convertView.findViewById(R.id.chat_msg);
+				viewHolder.child = view;
+				viewHolder.msg = msgTxt;
+				convertView.setTag(viewHolder);
+			} else {
+				viewHolder = (ViewHolder) convertView.getTag();
+			}
+
+			if (item.isSiri) {
+				viewHolder.child.setBackgroundResource(R.drawable.msgbox_rec);
+			} else {
+				viewHolder.child.setBackgroundResource(R.drawable.msgbox_send);
+			}
+			viewHolder.msg.setText(item.message);
+
+			return convertView;
+		}
+
+		class ViewHolder {
+			protected View child;
+			protected TextView msg;
+		}
+	}
+}

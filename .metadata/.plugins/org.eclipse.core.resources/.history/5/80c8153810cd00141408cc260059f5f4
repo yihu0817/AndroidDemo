@@ -1,0 +1,34 @@
+package com.scxh.bluetooth;
+
+import android.bluetooth.BluetoothDevice;
+import android.os.Handler;
+
+public class Bluetooth {
+	public Bluetooth(BluetoothDevice device, Handler handler) {
+
+	}
+
+	public void connect(final String message) {
+        Thread thread = new Thread(new Runnable() {
+            public void run() {
+                BluetoothSocket tmp = null;
+                Method method;
+                try {
+                    method = device.getClass().getMethod("createRfcommSocket", new Class[]{int.class});
+                    tmp = (BluetoothSocket) method.invoke(device, 1);
+                } catch (Exception e) {
+                    setState(CONNECT_FAILED);
+                    Log.e("TAG", e.toString());
+                }
+                socket = tmp;
+                try {
+                    socket.connect();
+                    isConnect = true;
+                } catch (Exception e) {
+                    setState(CONNECT_FAILED);
+                    Log.e("TAG", e.toString());
+                }
+            }
+        }
+	}
+}

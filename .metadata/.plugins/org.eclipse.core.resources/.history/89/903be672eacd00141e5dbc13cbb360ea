@@ -1,0 +1,54 @@
+package com.scxh.bluetooth;
+
+import java.util.List;
+
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.view.PagerTabStrip;
+import android.support.v4.view.ViewPager;
+
+public class BlueToothActivity extends FragmentActivity {
+	private ViewPager mViewPager;
+	private FragmentMain mainFragment;
+	private FragmentSetting settingFragment;
+	private List<Fragment> mList;
+	private List<String> mTitleList;
+	private MyPagerAdapter pageAdapter;
+	private PagerTabStrip mPagerTabStrip;
+	@Override
+	protected void onCreate(Bundle arg0) {
+		super.onCreate(arg0);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		setContentView(R.layout.bluetooth_main_layout);
+		
+		
+		mViewPager = (ViewPager) findViewById(R.id.viewpagerContainer);
+		mRadioGroup = (RadioGroup) findViewById(R.id.bottomRg);
+		mPagerTabStrip = (PagerTabStrip) findViewById(R.id.pagertab);
+
+		mPagerTabStrip.setTabIndicatorColor(getResources().getColor(
+				android.R.color.holo_red_light));
+
+		mPagerTabStrip.setBackgroundColor(getResources().getColor(
+				android.R.color.holo_blue_dark));
+
+		mainFragment = new FragmentMain();
+		searchFragment = new FragmentSearch();
+		settingFragment = new FragmentSetting();
+
+		mList = new ArrayList<Fragment>();
+		mList.add(mainFragment);
+		mList.add(searchFragment);
+		mList.add(settingFragment);
+
+		mTitleList = new ArrayList<String>();
+		mTitleList.add("Ê×Ò³");
+		mTitleList.add("ËÑË÷");
+		mTitleList.add("ÉèÖÃ");
+
+		pageAdapter = new MyPagerAdapter(getSupportFragmentManager(), mList,
+				mTitleList);
+		mViewPager.setAdapter(pageAdapter);
+	}
+}

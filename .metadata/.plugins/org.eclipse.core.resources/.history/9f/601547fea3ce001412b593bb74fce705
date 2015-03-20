@@ -1,0 +1,20 @@
+<resources>
+
+    <string name="app_name">AndroidBluetooth</string>
+    <string name="device_re_connect_btn">"重新搜索"</string>
+    <string name="device_stop_connect_btn">"停止搜索"</string>
+    <string name="device_connect_btn">"连接"</string>
+    <string name="device_cancel_btn">"取消"</string>
+    <string name="device_no_device_message">"没有设备已经配对"</string>
+    <string name="device_no_find_device_message">"没有发现蓝牙设备"</string>
+    
+    <string name="chat_null_sendcontent_message">"发送内容不能为空！"</string>
+    <string name="chat_disconnection_message">"已断开连接！"</string>
+    <string name="chat_no_connection_message">"没有连接"</string>
+    <string name="chat_connection_isopen_message">"连接已经打开，可以通信。如果要再建立连接，请先断开！"</string>
+    <string name="chat_connectioning_message">"请稍候，正在连接服务器:"</string>
+    <string name="chat_connectioned_sendok_message">"已经连接上服务端！可以发送信息。"</string>
+    <string name="chat_connection_error_message">"连接服务端异常！断开连接重新试一试。"</string>
+    <string name="chat_please_client_connectioning_message">"请稍候，正在等待客户端的连接..."</string>
+
+</resources>

@@ -1,0 +1,88 @@
+package com.scxh.bluetooth;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.view.PagerTabStrip;
+import android.support.v4.view.ViewPager;
+import android.view.Window;
+
+public class BlueToothActivity extends FragmentActivity {
+	private ViewPager mViewPager;
+	private ChatFragment mChatFragment;
+	private DeviceFragment mDeviceFragment;
+	private List<Fragment> mList;
+	private List<String> mTitleList;
+	private MyPagerAdapter pageAdapter;
+	private PagerTabStrip mPagerTabStrip;
+	@Override
+	protected void onCreate(Bundle arg0) {
+		super.onCreate(arg0);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		setContentView(R.layout.bluetooth_main_layout);
+		
+		
+		mViewPager = (ViewPager) findViewById(R.id.viewpagerContainer);
+		mPagerTabStrip = (PagerTabStrip) findViewById(R.id.pagertab);
+
+		mPagerTabStrip.setTabIndicatorColor(getResources().getColor(
+				android.R.color.holo_red_light));
+
+		mPagerTabStrip.setBackgroundColor(getResources().getColor(
+				android.R.color.holo_blue_dark));
+
+		mChatFragment = new ChatFragment();
+		mDeviceFragment = new DeviceFragment();
+
+		mList = new ArrayList<Fragment>();
+		mList.add(mainFragment);
+		mList.add(searchFragment);
+		mList.add(settingFragment);
+
+		mTitleList = new ArrayList<String>();
+		mTitleList.add("Ê×Ò³");
+		mTitleList.add("ËÑË÷");
+		mTitleList.add("ÉèÖÃ");
+
+		pageAdapter = new MyPagerAdapter(getSupportFragmentManager(), mList,
+				mTitleList);
+		mViewPager.setAdapter(pageAdapter);
+	}
+	
+
+	class MyPagerAdapter extends FragmentPagerAdapter {
+		private List<Fragment> fragmentList;
+		private List<String> mTititleList;
+
+		public MyPagerAdapter(FragmentManager fm, List<Fragment> fragmentList,
+				List<String> titleList) {
+			super(fm);
+			this.fragmentList = fragmentList;
+			mTititleList = titleList;
+		}
+
+		@Override
+		public Fragment getItem(int position) {
+			return (fragmentList == null || fragmentList.size() == 0) ? null
+					: fragmentList.get(position);
+		}
+
+		@Override
+		public CharSequence getPageTitle(int position) {
+			return (mTititleList == null || mTititleList.size() == 0) ? null
+					: mTititleList.get(position);
+		}
+
+		@Override
+		public int getCount() {
+			return fragmentList == null ? 0 : fragmentList.size();
+
+		}
+
+	}
+}

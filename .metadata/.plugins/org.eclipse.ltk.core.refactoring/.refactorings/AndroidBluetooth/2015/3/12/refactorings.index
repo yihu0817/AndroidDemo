@@ -1,0 +1,24 @@
+1426813105123	Rename package 'com.scxh.bluetooth.service'
+1426813114186	Rename package 'com.scxh.bluetooth.bean'
+1426813334882	Move compilation unit
+1426813384225	Rename resource 'chatlayout.xml'
+1426814835229	Rename type 'DeviceListItem'
+1426815188273	Rename field 'mDeviceLists'
+1426815194763	Rename field 'mDeviceListAdapter'
+1426815235120	Rename type 'DeviceItem'
+1426815245307	Rename type 'BlueMsgItem'
+1426815289892	Rename field 'isSiri'
+1426815477030	Rename field 'SERVER_Client_Type'
+1426815795694	Rename method 'onDisConnection'
+1426816593511	Rename method 'startClient'
+1426816599221	Rename method 'startServer'
+1426817326119	Rename method 'shutdownClient'
+1426817330581	Rename method 'shutdownServer'
+1426831697961	Copy compilation unit
+1426832812167	Copy compilation unit
+1426834693275	Rename field 'mServerOrCleintType'
+1426834980260	Rename local variable 'mServerOrClientType'
+1426834984292	Rename local variable 'mBlueToothAddress'
+1426835440841	Rename type 'chatActivity'
+1426835445875	Move compilation unit
+1426836704288	Rename type 'ChatFragmentActivity'
